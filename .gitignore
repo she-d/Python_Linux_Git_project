@@ -13,6 +13,12 @@ develop-eggs/
 dist/
 downloads/
 /data/
+
+#project output 
+/report/daily/*.md
+/report/daily/*.csv
+/report/daily/*.log
+
 eggs/
 .eggs/
 lib/
