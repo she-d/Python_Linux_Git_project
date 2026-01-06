@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]  # project root
 sys.path.append(str(ROOT))
@@ -7,18 +9,41 @@ sys.path.append(str(ROOT))
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 
-from src.data.finnhub import get_quote
-from src.data.yahoo import get_candles_yahoo
+from streamlit_autorefresh import st_autorefresh
+
+from src.data.finnhub import get_quote as raw_get_quote
+from src.data.yahoo import get_candles_yahoo as raw_get_candles_yahoo
 from src.strategies.buy_hold import buy_and_hold
 from src.strategies.momentum import momentum_strategy
 from src.metrics.performance import compute_metrics
 
 
+# Page config + auto-refresh
 st.set_page_config(page_title="Quant A - Single Asset Dashboard", layout="wide")
 
+# Auto refresh every 5 minutes
+st_autorefresh(interval=5 * 60 * 1000, key="auto_refresh_5min")
+
 st.title("Quant Finance Dashboard — Quant A (Single Asset)")
+st.caption("Last updated (Paris): " + datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M:%S"))
+
+
+# Cached data fetch wrappers
+@st.cache_data(ttl=300)
+def get_quote(symbol: str):
+    return raw_get_quote(symbol)
+
+
+@st.cache_data(ttl=300)
+def get_candles_yahoo(symbol: str, interval: str, period: str) -> pd.DataFrame:
+    # raw_get_candles_yahoo expects (symbol, interval=?, period=?)
+    return raw_get_candles_yahoo(symbol, interval=interval, period=period)
+
+
+def load_prices(symbol: str, interval: str, period: str) -> pd.DataFrame:
+    # No extra cache here (already cached in get_candles_yahoo)
+    return get_candles_yahoo(symbol, interval=interval, period=period)
 
 # Sidebar controls
 st.sidebar.header("Controls")
@@ -41,12 +66,7 @@ initial_value = st.sidebar.number_input(
     step=10.0,
 )
 
-st.sidebar.caption("Refresh: quote every run; data cached for performance.")
-
-# Data loading
-@st.cache_data(ttl=300)  # 5 minutes
-def load_prices(symbol: str, interval: str, period: str) -> pd.DataFrame:
-    return get_candles_yahoo(symbol, interval=interval, period=period)
+st.sidebar.caption("Auto-refresh every 5 minutes. Data fetch cached (TTL=300s).")
 
 
 # Header: current quote
@@ -64,6 +84,7 @@ try:
 except Exception as e:
     colA.warning(f"Finnhub quote unavailable: {e}")
 
+# Load prices
 prices = load_prices(asset, interval, period)
 
 # Strategy computation
@@ -84,6 +105,7 @@ colC.metric("Volatility (ann.)", f"{m['volatility']*100:.2f}%")
 colD.metric("Max drawdown", f"{m['max_drawdown']*100:.2f}%")
 st.metric("Sharpe (ann.)", f"{m['sharpe']:.2f}")
 
+
 # Main chart: price + equity curve
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=out["timestamp"], y=out["close"], name="Price", yaxis="y1"))
@@ -103,6 +125,7 @@ fig.update_layout(
 
 st.plotly_chart(fig, width="stretch")
 
+
 # Momentum signal
 if strategy == "Momentum" and "signal_lag" in out.columns:
     st.subheader(f"Momentum signal (lagged) — resampled (lookback={lookback})")
@@ -110,7 +133,7 @@ if strategy == "Momentum" and "signal_lag" in out.columns:
     sig = out[["timestamp", "signal_lag"]].copy()
     sig = sig.set_index("timestamp").sort_index()
 
-    # Resample to reduce noise (choose 15T or 30T)
+    # Resample to reduce noise (30T)
     sig_rs = sig["signal_lag"].resample("30T").last().dropna()
 
     fig_sig = go.Figure()
@@ -124,11 +147,11 @@ if strategy == "Momentum" and "signal_lag" in out.columns:
         )
     )
     fig_sig.update_layout(
-    xaxis_title="Time",
-    yaxis_title="Signal (0/1)",
-    yaxis=dict(range=[-0.05, 1.05]),
-    showlegend=False,
-)
+        xaxis_title="Time",
+        yaxis_title="Signal (0/1)",
+        yaxis=dict(range=[-0.05, 1.05]),
+        showlegend=False,
+    )
     fig_sig.update_yaxes(tickmode="array", tickvals=[0, 1])
 
     st.plotly_chart(fig_sig, width="stretch")
@@ -136,7 +159,7 @@ if strategy == "Momentum" and "signal_lag" in out.columns:
     invested_pct = out["signal_lag"].mean() * 100
     st.caption(f"Invested {invested_pct:.1f}% of the time")
 
+
 # Show raw data
 with st.expander("Show data"):
     st.dataframe(out.tail(50))
-
