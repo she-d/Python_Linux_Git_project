@@ -1,0 +1,21 @@
+/* Global spacing + typography */
+.block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1200px; }
+h1, h2, h3 { letter-spacing: -0.02em; }
+
+/* Sidebar polish */
+section[data-testid="stSidebar"] { border-right: 1px solid rgba(0,0,0,0.06); }
+section[data-testid="stSidebar"] .block-container { padding-top: 1.5rem; }
+
+/* Metrics: make them feel like cards */
+div[data-testid="metric-container"] {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  padding: 14px 14px 10px 14px;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+}
+
+/* Hide Streamlit footer/menu for a more app-like look */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }

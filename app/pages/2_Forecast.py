@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
+from streamlit_autorefresh import st_autorefresh
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT))
@@ -13,6 +17,8 @@ from src.models.linear_forecast import forecast_next_day_ols_from_daily  # noqa:
 
 
 st.set_page_config(page_title="Forecast", layout="wide")
+st_autorefresh(interval=5 * 60 * 1000, key="auto_refresh_5min")
+
 
 st.title("Forecast (Baseline Linear Regression)")
 st.caption("Daily next-day forecast with 95% prediction interval (OLS).")
@@ -26,6 +32,7 @@ with st.sidebar:
     momentum_lookback = st.slider("Momentum lookback (days)", 5, 120, 10, 1)
     ci = st.selectbox("Prediction interval", ["90%", "95%", "99%"], index=1)
     hist_days = st.slider("History shown (days)", 30, 400, 120, 10)
+    st.caption("Last updated (Paris): " + datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M:%S"))
 
 alpha_map = {"90%": 0.10, "95%": 0.05, "99%": 0.01}
 alpha = alpha_map[ci]
