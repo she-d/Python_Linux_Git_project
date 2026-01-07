@@ -57,9 +57,14 @@ We retrieve intraday stock prices for Apple (AAPL) using:
 - 24/7 deployment via systemd on AWS Ubuntu
 - Bonus: Forecast page (OLS regression + prediction intervals)
 
-**Quant B: Raphaël : Portfolio Analysis
--Portfolio simulation and portfolio-level analytics
-...
+### Quant B — Raphaël (Portfolio Analysis)
+- Assets: **AAPL**, **MSFT**, **KO**
+- Scope: **Multi-Asset Portfolio Management**
+- Strategies: **Portfolio Allocation** (User-defined weights vs Equal Weights)
+- Metrics: Correlation Matrix, Portfolio Volatility, VaR (Value at Risk)
+- Dedicated Streamlit Dashboard 
+- Automated Daily Reporting via Cron (Text report generation)
+- Unit Testing for logic validation
 
 ## Data Contract (Columns)
 
@@ -83,6 +88,15 @@ Benchmark strategy: always invested in the asset
   - `0` otherwise  
 - Signal is lagged to avoid look-ahead bias
 
+## Strategies (Quant B)
+### Portfolio Allocation
+Unlike single-asset strategies, this module manages a basket of assets to optimize risk/reward.
+- Logic: Reconstructs the equity curve based on weighted returns of selected assets (`AAPL`, `MSFT`, `KO`...).
+- Weighting Schemes:
+  - Equal Weighted: Automatically assigns $1/N$ weight to each asset (default).
+  - Custom Weighted: User can manually adjust exposure via the sidebar sliders.
+- Rebalancing: Implicitly assumes daily rebalancing to maintain target weights in the simulation.
+
 ## Metrics (Quant A)
 Displayed on the dashboard:
 -Total return
@@ -91,6 +105,13 @@ Displayed on the dashboard:
 -Sharpe ratio (annualized, risk-free rate =0 by default)
 
 Note : Annualization factor depends on the data frequency (default: 5-minute intraday candles)
+
+## Metrics (Quant B)
+Focused on diversification and risk management:
+-Correlation Matrix
+-Portfolio Volatility: Annualized standard deviation of the weighted portfolio.
+-Value at Risk (VaR 95%)
+-Portfolio Sharpe Ratio.
 
 ## Auto-refresh (Every 5 Minutes)
 
@@ -123,6 +144,7 @@ Logs: journalctl -u streamlit-quant -n 80 --no-pager
 ##Repository structure 
 app/                      # Streamlit app (Quant A)
   streamlit_app.py
+  app_quant_b.py          # Quant B Dashboard
   pages/
     2_Forecast.py         # bonus forecast page
 src/
@@ -132,14 +154,18 @@ src/
   strategies/             # backtesting strategies
     buy_hold.py
     momentum.py
+    portfolio_allocation.py
   metrics/                # performance metrics
     performance.py
+    risk_analysis.py
   models/                 # forecasting models
     linear_forecast.py
 scripts/
   generate_daily_report.py
+  generate_portfolio_report.py
   fetch_daily_yahoo.py
   test_forecast.py
+  test_portfolio.py
 report/
   daily/                  # daily reports + cron logs
 .streamlit/
