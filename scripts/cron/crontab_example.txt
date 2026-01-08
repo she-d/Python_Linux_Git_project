@@ -1,2 +1,0 @@
-# Run daily report at 20:00 (server local time)
-0 20 * * * cd /path/to/Python_Linux_Git_project && /usr/bin/python3 scripts/generate_daily_report.py >> report/daily/cron.log 2>&1
