@@ -1,0 +1,1 @@
+0 20 * * * cd /home/ubuntu/Python_Linux_Git_project && /home/ubuntu/Python_Linux_Git_project/.venv/bin/python scripts/generate_daily_report.py >> report/daily/cron.log 2>&1
